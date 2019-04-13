@@ -1,0 +1,17 @@
+.DS_Store
+*.bak
+.*.swp
+*.tar
+._*
+*.pyc
+.idea/*
+venv/*
+*env/*
+*.iml
+~$*
+migrations*/*
+migrations/*
+uploads/*
+dump.rdb
+*~
+*.mako
