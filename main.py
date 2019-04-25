@@ -6,9 +6,10 @@
 """
 from pathlib import Path
 from tkinter import *
+from tkinter import scrolledtext
+from tkinter.ttk import Combobox
 
-import requests
-from bs4 import BeautifulSoup
+import site_factory
 
 
 class Application(Frame):
@@ -36,8 +37,8 @@ class Application(Frame):
         self.title_label.pack(side=TOP)
         self.fm1.pack(side=TOP)
         # mid
-        self.textare = Text(self, bg='white', height=20)
-        self.textare.pack(fill='x', pady=20, side=TOP)
+        self.textare = scrolledtext.ScrolledText(self, bg='white', height=20)
+        self.textare.pack(fill=BOTH, side=TOP, expand=True)
         # bottom
         self.fm3 = Frame(self, bg='black')
         self.btn_label = Label(
@@ -49,40 +50,40 @@ class Application(Frame):
         self.btn_label.pack(side=LEFT, fill=X, padx=1)
         self.input = Entry(self.fm3, width=60)
         self.input.pack(side=LEFT)
+        # 下拉
+        self.select_label = Label(
+            self.fm3,
+            text='网站选择',
+            font=('微软雅黑', 16), fg="white", bg='black',
+            width=10
+        )
+        self.site_select = Combobox(self.fm3)
+        self.site_select['values'] = ('tieba', 'weibo', 'bilibili',)  # 设置下拉列表的值
+        self.site_select.pack(side=LEFT, fill=X, padx=30)
+        self.site_select.current(0)
+        self.site_select.bind("<<ComboboxSelected>>", self.choose_func)
+
         # button
         self.btn = Button(self.fm3, text='下载', width=5, command=self.start_download)
         self.btn.pack(side=RIGHT, fill=X, padx=15)
         self.fm3.pack(side=TOP)
         # self.fm2 = Frame(self, bg='black')
 
+    def choose_func(self, *args):
+        """
+        下拉触发事件
+        :return:
+        """
+        print(self.site_select.get())
+
     def start_download(self):
-        url = self.input.get()
-        res = requests.get(url, timeout=5)
-        soup = BeautifulSoup(res.text, 'html.parser')
-        pn = soup.select(".l_reply_num ")[0].select('.red')[1].text
-        title = soup.select(".core_title_txt ")[0].text
-        self.textare.insert('insert', '开始下载... \n')
-        self.textare.update()
-        sub_folder = self._check_folder(title)
-        print(sub_folder)
-        for p in range(1, int(pn) + 1):  # pagecount +1 总页数+1
-            page = requests.get(url + '?pn=' + str(p)).text
-            doc = BeautifulSoup(page, 'html.parser')
-            for el in doc.select('img.BDE_Image'):
-                name = el['src'].split('/')[6]
-                hd_re = re.compile("(http://imgsrc.baidu.com/forum)/.*?/sign=.*?/(.*?.jpg)")
-                hd_url_tuple = hd_re.search(el['src']).groups()
-                hd_ref = '{}/pic/item/{}'.format(*hd_url_tuple)
-                # 替换为高清图片地址
-                with open('{}/{}'.format(sub_folder, name), 'wb') as f:
-                    ret = requests.get(hd_ref)
-                    if ret.status_code == 200:
-                        f.write(requests.get(hd_ref).content)
-                        self.textare.insert('insert', '{} 下载成功!\n'.format(hd_ref))
-                        self.textare.update()
-        self.textare.insert('insert', '图片下载完毕!\n')
+        input_text = self.input.get()
+        site_name = self.site_select.get()
+        analysis = getattr(site_factory, site_name)
+        analysis(site_name, input_text, self)
 
     def _check_folder(self, sub_name):
+        sub_name = re.sub('[\/:*?"<>|]', '', sub_name)
         img_folder = Path('img/{}'.format(sub_name))
         if img_folder and img_folder.is_dir():
             pass
